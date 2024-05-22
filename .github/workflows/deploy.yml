@@ -19,10 +19,10 @@ jobs:
         uses: actions/setup-node@v4.0.2
         with:
           node-version: "18.17.1"
-      - name: Install requirements
+      - name: "Install requirements - app"
         working-directory: app
         run: npm install
-      - name: Build styles
+      - name: "Install requirements - styles"
         working-directory: styles
         run: npm install
       - name: Build app
