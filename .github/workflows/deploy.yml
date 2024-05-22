@@ -24,10 +24,10 @@ jobs:
         run: npm install
       - name: Build styles
         working-directory: styles
-        run: npm build
+        run: npm install
       - name: Build app
         working-directory: app
-        run: npm build
+        run: npm run build
       # ---------- publish ----------
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@1
