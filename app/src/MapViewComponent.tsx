@@ -340,6 +340,20 @@ export default function MapViewComponent() {
 
   const { getRootProps } = useDropzone({ onDrop });
 
+  // TODO: language tag selector
+
+  useEffect(() => {
+    if (!tiles) {
+      fetch("https://build-metadata.protomaps.dev/builds.json")
+        .then((r) => {
+          return r.json();
+        })
+        .then((j) => {
+          setTiles(`https://build.protomaps.com/${j[j.length - 1].key}`);
+        });
+    }
+  }, [tiles]);
+
   const handleKeyPress = (event: KeyboardEvent<HTMLDivElement>) => {
     const c = event.charCode;
     if (c >= 49 && c <= 53) {
