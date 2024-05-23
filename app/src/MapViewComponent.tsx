@@ -308,13 +308,14 @@ export default function MapViewComponent() {
 
   useEffect(() => {
     if (!tiles) {
-      fetch("https://build-metadata.protomaps.dev/builds.json")
-        .then((r) => {
-          return r.json();
-        })
-        .then((j) => {
-          setTiles(`https://build.protomaps.com/${j[j.length - 1].key}`);
-        });
+      // fetch("https://build-metadata.protomaps.dev/builds.json")
+      //   .then((r) => {
+      //     return r.json();
+      //   })
+      //   .then((j) => {
+      //     setTiles(`https://build.protomaps.com/${j[j.length - 1].key}`);
+      //   });
+      setTiles(`https://pmtiles.karnwong.me/thailand.pmtiles`);
     }
   }, [tiles]);
 
