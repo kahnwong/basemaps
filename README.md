@@ -1,5 +1,17 @@
 # Protomaps Basemaps
 
+-----
+## Download pmtiles
+
+Obtain bounding box from <https://boundingbox.klokantech.com/>
+
+```bash
+go install github.com/protomaps/go-pmtiles@latest
+
+go-pmtiles extract https://build.protomaps.com/20240521.pmtiles bangkok.pmtiles --bbox=100.327912387,13.493389571,100.938516257,13.955198179
+```
+-----
+
 This repository has two core parts:
 
 * `tiles/`: A [Planetiler](https://github.com/onthegomap/planetiler) build profile that generates `planet.pmtiles` from OpenStreetMap and Natural Earth in 2-3 hours on a modest computer.
