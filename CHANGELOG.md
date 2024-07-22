@@ -1,3 +1,12 @@
+Tiles v3.7.0
+------
+- Use a positioned glyph font encoding for Devanagari via @wipfli [#265]
+
+Tiles v3.6.0
+------
+- More places kinds (port from Tilezen), refine zoom levels via @nvkelso [#259]
+- Add `pmap:script` for non-latin names via @wipfli [#254]
+
 Tiles v3.5.2
 ------
 - Exclude buildings from `transit` layer. via @pietervdvn [#249]

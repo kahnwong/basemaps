@@ -19,7 +19,11 @@ import com.protomaps.basemap.layers.Pois;
 import com.protomaps.basemap.layers.Roads;
 import com.protomaps.basemap.layers.Transit;
 import com.protomaps.basemap.layers.Water;
+import com.protomaps.basemap.text.FontRegistry;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class Basemap extends ForwardingProfile {
@@ -28,16 +32,16 @@ public class Basemap extends ForwardingProfile {
 
     var admin = new Boundaries();
     registerHandler(admin);
-    registerSourceHandler("osm", admin);
+    registerSourceHandler("osm", admin::processOsm);
     registerSourceHandler("ne", admin::processNe);
 
     var buildings = new Buildings();
     registerHandler(buildings);
-    registerSourceHandler("osm", buildings);
+    registerSourceHandler("osm", buildings::processOsm);
 
     var landuse = new Landuse();
     registerHandler(landuse);
-    registerSourceHandler("osm", landuse);
+    registerSourceHandler("osm", landuse::processOsm);
 
     var landcover = new Landcover();
     registerHandler(landcover);
@@ -45,37 +49,37 @@ public class Basemap extends ForwardingProfile {
 
     var natural = new Natural();
     registerHandler(natural);
-    registerSourceHandler("osm", natural);
+    registerSourceHandler("osm", natural::processOsm);
 
     var physicalLine = new PhysicalLine();
     registerHandler(physicalLine);
-    registerSourceHandler("osm", physicalLine);
+    registerSourceHandler("osm", physicalLine::processOsm);
 
     var physicalPoint = new PhysicalPoint();
     registerHandler(physicalPoint);
-    registerSourceHandler("osm", physicalPoint);
+    registerSourceHandler("osm", physicalPoint::processOsm);
     registerSourceHandler("ne", physicalPoint::processNe);
 
     var place = new Places(naturalEarthDb);
     registerHandler(place);
-    registerSourceHandler("osm", place);
+    registerSourceHandler("osm", place::processOsm);
     registerSourceHandler("ne", place::processNe);
 
     var poi = new Pois(qrankDb);
     registerHandler(poi);
-    registerSourceHandler("osm", poi);
+    registerSourceHandler("osm", poi::processOsm);
 
     var roads = new Roads();
     registerHandler(roads);
-    registerSourceHandler("osm", roads);
+    registerSourceHandler("osm", roads::processOsm);
 
     var transit = new Transit();
     registerHandler(transit);
-    registerSourceHandler("osm", transit);
+    registerSourceHandler("osm", transit::processOsm);
 
     var water = new Water();
     registerHandler(water);
-    registerSourceHandler("osm", water);
+    registerSourceHandler("osm", water::processOsm);
     registerSourceHandler("osm_water", water::processPreparedOsm);
     registerSourceHandler("ne", water::processNe);
 
@@ -97,7 +101,7 @@ public class Basemap extends ForwardingProfile {
 
   @Override
   public String version() {
-    return "3.5.2";
+    return "3.7.0";
   }
 
   @Override
@@ -112,11 +116,26 @@ public class Basemap extends ForwardingProfile {
       """.trim();
   }
 
-  public static void main(String[] args) throws Exception {
+  @Override
+  public Map<String, String> extraArchiveMetadata() {
+    Map<String, String> result = new HashMap<>();
+
+    FontRegistry fontRegistry = FontRegistry.getInstance();
+    List<String> scripts = fontRegistry.getScripts();
+
+    for (String script : scripts) {
+      result.put("pgf:" + script.toLowerCase() + ":name", fontRegistry.getName(script));
+      result.put("pgf:" + script.toLowerCase() + ":version", fontRegistry.getVersion(script));
+    }
+
+    return result;
+  }
+
+  public static void main(String[] args) {
     run(Arguments.fromArgsOrConfigFile(args));
   }
 
-  static void run(Arguments args) throws Exception {
+  static void run(Arguments args) {
     args = args.orElse(Arguments.of("maxzoom", 15));
 
     Path dataDir = Path.of("data");
@@ -137,13 +156,21 @@ public class Basemap extends ForwardingProfile {
       .addGeoPackageSource("landcover", sourcesDir.resolve("daylight-landcover.gpkg"),
         "https://r2-public.protomaps.com/datasets/daylight-landcover.gpkg");
 
-    Downloader.create(planetiler.config()).add("ne", neUrl, nePath).run();
+    Path pgfEncodingZip = sourcesDir.resolve("pgf-encoding.zip");
+    Downloader.create(planetiler.config()).add("ne", neUrl, nePath)
+      .add("pgf-encoding", "https://wipfli.github.io/pgf-encoding/pgf-encoding.zip", pgfEncodingZip)
+      .run();
     //      .add("qrank", "https://qrank.wmcloud.org/download/qrank.csv.gz", sourcesDir.resolve("qrank.csv.gz")).run();
 
     var tmpDir = nePath.resolveSibling(nePath.getFileName() + "-unzipped");
     var naturalEarthDb = NaturalEarthDb.fromSqlite(nePath, tmpDir);
     //    var qrankDb = QrankDb.fromCsv(sourcesDir.resolve("qrank.csv.gz"));
     var qrankDb = QrankDb.empty();
+
+    FontRegistry fontRegistry = FontRegistry.getInstance();
+    fontRegistry.setZipFilePath(pgfEncodingZip.toString());
+
+    fontRegistry.loadFontBundle("NotoSansDevanagari-Regular", "1", "Devanagari");
 
     planetiler.setProfile(new Basemap(naturalEarthDb, qrankDb)).setOutput(Path.of(area + ".pmtiles"))
       .run();

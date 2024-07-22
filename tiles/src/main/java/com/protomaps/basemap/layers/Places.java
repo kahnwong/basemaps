@@ -12,11 +12,14 @@ import com.protomaps.basemap.feature.FeatureId;
 import com.protomaps.basemap.feature.NaturalEarthDb;
 import com.protomaps.basemap.names.NeNames;
 import com.protomaps.basemap.names.OsmNames;
+import com.protomaps.basemap.names.Script;
+import com.protomaps.basemap.text.FontRegistry;
+import com.protomaps.basemap.text.TextEngine;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Places implements ForwardingProfile.FeatureProcessor, ForwardingProfile.FeaturePostProcessor {
+public class Places implements ForwardingProfile.FeaturePostProcessor {
 
   private NaturalEarthDb naturalEarthDb;
 
@@ -137,6 +140,19 @@ public class Places implements ForwardingProfile.FeatureProcessor, ForwardingPro
         // since all these are locality, we hard code kindRank to 2 (needs to match OSM section below)
         .setSortKey(getSortKey(minZoom, 2, populationRank, population, sf.getString("name")));
 
+      String name = sf.getTag("name").toString();
+      var script = Script.getScript(name);
+
+      if (!script.equals("Latin") && !script.equals("Generic")) {
+        feat.setAttr("pmap:script", script);
+        FontRegistry fontRegistry = FontRegistry.getInstance();
+        if (fontRegistry.getScripts().contains(script)) {
+          String encodedName = TextEngine.encodeRegisteredScripts(name);
+          feat.setAttr("pmap:pgf:name", encodedName);
+        }
+      }
+
+
       // NOTE: The buffer needs to be consistent with the innteral grid pixel sizes
       feat.setPointLabelGridPixelSize(LOCALITY_GRID_SIZE_ZOOM_FUNCTION)
         .setPointLabelGridLimit(LOCALITY_GRID_LIMIT_ZOOM_FUNCTION)
@@ -150,10 +166,10 @@ public class Places implements ForwardingProfile.FeatureProcessor, ForwardingPro
     }
   }
 
-  @Override
-  public void processFeature(SourceFeature sf, FeatureCollector features) {
+  public void processOsm(SourceFeature sf, FeatureCollector features) {
     if (sf.isPoint() && sf.hasTag("name") &&
-      (sf.hasTag("place", "suburb", "town", "village", "neighbourhood", "quarter", "city", "country", "state",
+      (sf.hasTag("place", "suburb", "town", "village", "locality", "hamlet",
+        "isolated_dwelling", "farm", "allotments", "neighbourhood", "quarter", "city", "country", "state",
         "province"))) {
       String kind = "other";
       int kindRank = 6;
@@ -161,7 +177,7 @@ public class Places implements ForwardingProfile.FeatureProcessor, ForwardingPro
       int themeMinZoom = 7;
       double minZoom = 12.0;
       double maxZoom = 15.0;
-      long population = 0;
+      int population = 0;
       if (sf.hasTag("population")) {
         Integer parsed = parseIntOrNull(sf.getString("population"));
         if (parsed != null) {
@@ -185,7 +201,6 @@ public class Places implements ForwardingProfile.FeatureProcessor, ForwardingPro
             minZoom = neAdmin0.minLabel() - NE_ZOOM_OFFSET;
             maxZoom = neAdmin0.maxLabel() - NE_ZOOM_OFFSET;
           }
-
           kindRank = 0;
           break;
         case "state":
@@ -211,7 +226,9 @@ public class Places implements ForwardingProfile.FeatureProcessor, ForwardingPro
           maxZoom = 15.0f;
           kindRank = 2;
           if (population == 0) {
+            minZoom = 8.0f;
             if (place.equals("town")) {
+              minZoom = 9.0f;
               population = 10000;
             } else {
               population = 5000;
@@ -225,9 +242,67 @@ public class Places implements ForwardingProfile.FeatureProcessor, ForwardingPro
           maxZoom = 15.0f;
           kindRank = 3;
           if (population == 0) {
+            minZoom = 11.0f;
             population = 2000;
           }
           break;
+        case "locality":
+          kind = "locality";
+          // This minZoom can be changed to smaller value in the NE data join step below
+          minZoom = 11.0f;
+          maxZoom = 15.0f;
+          kindRank = 3;
+          if (population == 0) {
+            minZoom = 12.0f;
+            population = 1000;
+          }
+          break;
+        case "hamlet":
+          kind = "locality";
+          // This minZoom can be changed to smaller value in the NE data join step below
+          minZoom = 11.0f;
+          maxZoom = 15.0f;
+          kindRank = 3;
+          if (population == 0) {
+            minZoom = 12.0f;
+            population = 200;
+          }
+          break;
+        case "isolated_dwelling":
+          kind = "locality";
+          // This minZoom can be changed to smaller value in the NE data join step below
+          minZoom = 13.0f;
+          maxZoom = 15.0f;
+          kindRank = 3;
+          if (population == 0) {
+            minZoom = 14.0f;
+            population = 100;
+          }
+          break;
+        case "farm":
+          kind = "locality";
+          // This minZoom can be changed to smaller value in the NE data join step below
+          minZoom = 13.0f;
+          maxZoom = 15.0f;
+          kindRank = 3;
+          if (population == 0) {
+            minZoom = 14.0f;
+            population = 50;
+          }
+          break;
+        // NOTE (nvkelso 20240617): areas outside of main population center with different postal city in Eastern Europe
+        case "allotments":
+          kind = "locality";
+          // This minZoom can be changed to smaller value in the NE data join step below
+          minZoom = 13.0f;
+          maxZoom = 15.0f;
+          kindRank = 3;
+          if (population == 0) {
+            minZoom = 14.0f;
+            population = 1000;
+          }
+          break;
+        // NOTE (nvkelso 20240617): suburb can mean locality in some countries and should be localized
         case "suburb":
           kind = "neighbourhood";
           minZoom = 11.0f;
