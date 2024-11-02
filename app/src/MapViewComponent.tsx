@@ -306,7 +306,7 @@ export default function MapViewComponent() {
   const [theme, setTheme] = useState<string>(hash.theme || "light");
   const [lang, setLang] = useState<string>(hash.lang || "en");
   const [tiles, setTiles] = useState<string>(
-    hash.tiles || "https://demo-bucket.protomaps.com/v4.pmtiles",
+    "https://pmtiles.karnwong.me/thailand.pmtiles",
   );
   const [localSprites, setLocalSprites] = useState<boolean>(
     hash.local_sprites === "true",
